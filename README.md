@@ -2,7 +2,7 @@
 
 Trello? Is it me you're looking for?
 
-LionelRichie is a script for exporting Trello data to Google Docs.
+LionelRichie is a script for exporting Trello data to Google Docs. This gem is in its very early stages so its probably not useful to you yet.
 
 ## Installation
 
