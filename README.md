@@ -49,6 +49,54 @@ You should now be ready to run the export:
 
     $ lionel
 
+## Crafting the Export
+
+```ruby
+LionelRichie.export do
+  # Card Id
+  b { id }
+
+  # Card Link
+  c { link }
+
+  # Ready date
+  d do
+    ready_action = card.first_action do |a|
+      (a.create? && a.board_id == trello_board_id) || a.moved_to?("Ready")
+    end
+    format_date(ready_action.date) if ready_action
+  end
+
+  # In Progress date
+  e { date_moved_to("In Progress") }
+
+  # Code Review date
+  f { date_moved_to("Code Review") }
+
+  # Review date
+  g { date_moved_to("Review") }
+
+  # Deploy date
+  h { date_moved_to("Deploy") }
+
+  # Completed date
+  i { date_moved_to("Completed") }
+
+  # Type
+  j { type }
+
+  # Project
+  k { project }
+
+  # Estimate
+  l { estimate }
+
+  # Due Date
+  m { due_date }
+end
+```
+
+
 ## Contributing
 
 1. Fork it

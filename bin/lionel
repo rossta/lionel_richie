@@ -4,13 +4,18 @@ $LOAD_PATH.unshift File.expand_path(File.dirname(__FILE__) + '/../lib')
 
 require 'lionel_richie'
 
+puts "Trello? Is it me you're looking for?"
+puts "====================================\n"
+
+google_doc_id = ENV['GOOGLE_DOC_ID']
+trello_board_id = ENV['TRELLO_BOARD_ID']
+
 Trello.configure do |c|
   c.developer_public_key = ENV['TRELLO_KEY']
   c.member_token = ENV['TRELLO_TOKEN']
 end
 
-board_id = ENV['TRELLO_BOARD_ID']
-board = Trello::Board.find(board_id)
+board = Trello::Board.find(trello_board_id)
 
 cards = []
 board.lists.each do |list|
@@ -20,65 +25,158 @@ board.lists.each do |list|
 end
 
 session = GoogleDrive.login_with_oauth(ENV['GOOGLE_TOKEN'])
+google_doc = session.spreadsheet_by_key(google_doc_id)
+ws = google_doc.worksheets[0]
 
-sp = session.spreadsheet_by_key(ENV['GOOGLE_DOC_ID'])
-ws = sp.worksheets[0]
+puts "Syncing trello board '#{board.name}' (#{trello_board_id}) with google doc #{google_doc.title} (#{google_doc_id})"
 
 start_row = 2
 rows = ws.rows.size
 
 card_ids = cards.map(&:id)
 
-def sync_row(ws, row, card)
-  puts "syncing row[#{row}] with #{card.name}"
-  ws["B#{row}"] = card.id
+CardExport = Struct.new(:card) do
+  delegate :id, :url, :name, :due, to: :card
 
-  # Card link
-  ws["C#{row}"] = %Q[=HYPERLINK("#{card.url}", "#{card.name.gsub(/"/, "")}")]
-
-  actions = card.actions
-  actions = actions.select { |a| a.data["listBefore"].present? }
-
-  # Ready date
-  ws["D#{row}"] = action_date(actions) do |a|
-    (a.type == "createCard" && a.data["board"]["id"] == board_id) ||
-    a.data["listAfter"]["name"] =~ /ready/i
+  def link
+    %Q[=HYPERLINK("#{card.url}", "#{card.name.gsub(/"/, "")}")]
   end
 
+  def actions
+    @actions ||= card.actions.map { |a| ActionExport.new(a) }
+  end
+
+  def action_date(&block)
+    filtered = actions.select(&block)
+    return "" if filtered.empty?
+    action = filtered.sort { |a, b| a.date <=> b.date }.first
+    format_date action.date
+  end
+
+  def date_moved_to(list_name)
+    action = first_action { |a| a.moved_to?(list_name) }
+    return "" unless action
+    format_date(action.date)
+  end
+
+  def format_date(date, format = "%m/%d/%Y")
+    date.strftime(format)
+  end
+
+  def first_action(&block)
+    actions.select(&block).sort { |a, b| a.date <=> b.date }.first
+  end
+
+  def type
+    labels.detect { |l| l =~ %r{bug|chore|task}i } || 'story'
+  end
+
+  def project
+    labels.detect { |l| l !~ %r{bug|chore|task}i }
+  end
+
+  def labels
+    @labels ||= card.labels.map(&:name).map(&:downcase)
+  end
+
+  def estimate
+    match = card.name.match(/\[(?<estimate>\w)\]/)
+    return "" unless match
+    match[:estimate]
+  end
+
+  def due_date
+    format_date(due) if due
+  end
+end
+
+ActionExport = Struct.new(:action) do
+  delegate :data, :type, :date, to: :action
+
+  def data_attributes(key)
+    data[key] || {}
+  end
+
+  def create?
+    type == "createCard"
+  end
+
+  def update?
+    type == "updateCard"
+  end
+
+  def board_id
+    data_attributes("board")["id"]
+  end
+
+  def list_after
+    data_attributes("listAfter")
+  end
+
+  def list_before
+    data_attributes("listBefore")
+  end
+
+  def list_after?
+    list_after.any?
+  end
+
+  def list_before?
+    list_before.any?
+  end
+
+  def moved_to?(list_name)
+    return false unless list_after?
+    !!(list_after["name"] =~ %r{^#{Regexp.escape(list_name.downcase)}}i)
+  end
+end
+
+def sync_row(ws, row, card, trello_board_id)
+  puts "syncing row[#{row}] with #{card.name}"
+
+  export = CardExport.new(card)
+
+  ws["B#{row}"] = export.id
+
+  # Card link
+  ws["C#{row}"] = export.link
+
+  # Ready date
+  ready_action = export.first_action do |a|
+    (a.create? && a.board_id == trello_board_id) || a.moved_to?("Ready")
+  end
+  ws["D#{row}"] = export.format_date(ready_action.date) if ready_action
+
   # In Progress date
-  ws["E#{row}"] = action_date(actions) { |a| a.data["listAfter"]["name"] =~ /^in progress/i }
+  ws["E#{row}"] = export.date_moved_to("In Progress")
 
   # Code Review date
-  ws["F#{row}"] = action_date(actions) { |a| a.data["listAfter"]["name"] =~ /^code review/i }
+  ws["F#{row}"] = export.date_moved_to("Code Review")
 
   # Review date
-  ws["G#{row}"] = action_date(actions) { |a| a.data["listAfter"]["name"] =~ /^review/i }
+  ws["G#{row}"] = export.date_moved_to("Review")
 
   # Deploy date
-  ws["H#{row}"] = action_date(actions) { |a| a.data["listAfter"]["name"] =~ /^deploy/i }
+  ws["H#{row}"] = export.date_moved_to("Deploy")
 
   # Completed date
-  ws["I#{row}"] = action_date(actions) { |a| a.data["listAfter"]["name"] =~ /^completed/i }
+  ws["I#{row}"] = export.date_moved_to("Completed")
 
   # Type
-  labels = card.labels.map(&:name)
-  type = labels.detect { |l| l.downcase =~ %r{bug|chore|task}i } || 'story'
-  ws["J#{row}"] = type
+  ws["J#{row}"] = export.type
+
+  # Project
+  ws["K#{row}"] = export.project
 
   # Estimate
-  match = card.name.match(/\[(?<estimate>\w)\]/)
-  ws["L#{row}"] = match[:estimate] if match
+  ws["L#{row}"] = export.estimate
+
+  # Due Date
+  ws["M#{row}"] = export.due_date
 
 rescue Trello::Error => e
   puts e.inspect
   puts card.inspect
-end
-
-def action_date(actions, &block)
-  actions = actions.select(&block)
-  return "" if actions.empty?
-  action = actions.sort { |a, b| a.date <=> b.date }.first
-  action.date.strftime("%m/%d/%Y")
 end
 
 card_rows = {}
@@ -100,10 +198,14 @@ new_cards.each_with_index do |card, i|
 end
 
 card_rows.each do |row, card|
-  sleep 1
-  Timeout.timeout(5) { sync_row(ws, row, card) }
+  Timeout.timeout(5) { sync_row(ws, row, card, trello_board_id) }
 end
 
-ws.save
+flag = ARGV.shift
+if flag == "export"
+  ws.save
+  puts "Saved!"
+else
+  puts ws.rows
+end
 
-puts "exiting"
