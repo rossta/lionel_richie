@@ -52,6 +52,7 @@ You should now be ready to run the export:
 ## Crafting the Export
 
 ```ruby
+
 LionelRichie.export do
   # Card Id
   b { id }

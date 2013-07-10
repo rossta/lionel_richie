@@ -1,13 +1,39 @@
 #! /usr/bin/env ruby
 
-$LOAD_PATH.unshift File.expand_path(File.dirname(__FILE__) + '/../lib')
+# Trap interrupts to quit cleanly. See
+# https://twitter.com/mitchellh/status/283014103189053442
+Signal.trap("INT") { exit 1 }
 
 require 'lionel_richie'
+
+case ARGV.shift
+when "authorize"
+  def yes?
+    gets.strip =~ /\Ay/i
+  end
+
+  commands = []
+
+  puts "Authorize for Trello?"
+  commands << Lionel::TrelloAuthentication.new.call if yes?
+
+  # Google Auth
+  puts "Authorize for Google?"
+  commands << Lionel::GoogleAuthentication.new.call if yes?
+
+  puts "Run the following:\n"
+  puts commands
+  exit
+when "export"
+  export = true
+else
+  export = false
+end
 
 puts "Trello? Is it me you're looking for?"
 puts "====================================\n"
 
-google_doc_id = ENV['GOOGLE_DOC_ID']
+google_doc_id   = ENV['GOOGLE_DOC_ID']
 trello_board_id = ENV['TRELLO_BOARD_ID']
 
 Trello.configure do |c|
@@ -24,9 +50,16 @@ board.lists.each do |list|
   end
 end
 
-session = GoogleDrive.login_with_oauth(ENV['GOOGLE_TOKEN'])
-google_doc = session.spreadsheet_by_key(google_doc_id)
-ws = google_doc.worksheets[0]
+attempts = 0
+begin
+  session = GoogleDrive.login_with_oauth(ENV['GOOGLE_TOKEN'])
+  google_doc = session.spreadsheet_by_key(google_doc_id)
+  ws = google_doc.worksheets[0]
+rescue GoogleDrive::AuthenticationError => e
+  attempts += 1
+  Lionel::GoogleAuthentication.new.call
+  retry if attempts < 2
+end
 
 puts "Syncing trello board '#{board.name}' (#{trello_board_id}) with google doc #{google_doc.title} (#{google_doc_id})"
 
@@ -35,106 +68,10 @@ rows = ws.rows.size
 
 card_ids = cards.map(&:id)
 
-CardExport = Struct.new(:card) do
-  delegate :id, :url, :name, :due, to: :card
-
-  def link
-    %Q[=HYPERLINK("#{card.url}", "#{card.name.gsub(/"/, "")}")]
-  end
-
-  def actions
-    @actions ||= card.actions.map { |a| ActionExport.new(a) }
-  end
-
-  def action_date(&block)
-    filtered = actions.select(&block)
-    return "" if filtered.empty?
-    action = filtered.sort { |a, b| a.date <=> b.date }.first
-    format_date action.date
-  end
-
-  def date_moved_to(list_name)
-    action = first_action { |a| a.moved_to?(list_name) }
-    return "" unless action
-    format_date(action.date)
-  end
-
-  def format_date(date, format = "%m/%d/%Y")
-    date.strftime(format)
-  end
-
-  def first_action(&block)
-    actions.select(&block).sort { |a, b| a.date <=> b.date }.first
-  end
-
-  def type
-    labels.detect { |l| l =~ %r{bug|chore|task}i } || 'story'
-  end
-
-  def project
-    labels.detect { |l| l !~ %r{bug|chore|task}i }
-  end
-
-  def labels
-    @labels ||= card.labels.map(&:name).map(&:downcase)
-  end
-
-  def estimate
-    match = card.name.match(/\[(?<estimate>\w)\]/)
-    return "" unless match
-    match[:estimate]
-  end
-
-  def due_date
-    format_date(due) if due
-  end
-end
-
-ActionExport = Struct.new(:action) do
-  delegate :data, :type, :date, to: :action
-
-  def data_attributes(key)
-    data[key] || {}
-  end
-
-  def create?
-    type == "createCard"
-  end
-
-  def update?
-    type == "updateCard"
-  end
-
-  def board_id
-    data_attributes("board")["id"]
-  end
-
-  def list_after
-    data_attributes("listAfter")
-  end
-
-  def list_before
-    data_attributes("listBefore")
-  end
-
-  def list_after?
-    list_after.any?
-  end
-
-  def list_before?
-    list_before.any?
-  end
-
-  def moved_to?(list_name)
-    return false unless list_after?
-    !!(list_after["name"] =~ %r{^#{Regexp.escape(list_name.downcase)}}i)
-  end
-end
-
 def sync_row(ws, row, card, trello_board_id)
   puts "syncing row[#{row}] with #{card.name}"
 
-  export = CardExport.new(card)
+  export = Lionel::ProxyCard.new(card)
 
   ws["B#{row}"] = export.id
 
@@ -201,8 +138,7 @@ card_rows.each do |row, card|
   Timeout.timeout(5) { sync_row(ws, row, card, trello_board_id) }
 end
 
-flag = ARGV.shift
-if flag == "export"
+if export
   ws.save
   puts "Saved!"
 else
