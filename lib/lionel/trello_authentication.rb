@@ -3,6 +3,21 @@ module Lionel
 
     attr_accessor :trello_key, :trello_token
 
+    def trello_key
+      @trello_key || ENV['TRELLO_KEY']
+    end
+
+    def trello_token
+      @trello_token || ENV['TRELLO_TOKEN']
+    end
+
+    def configure
+      Trello.configure do |c|
+        c.developer_public_key  = trello_key
+        c.member_token          = trello_token
+      end
+    end
+
     def commands
       [].tap do |commands|
         commands << trello_key_command

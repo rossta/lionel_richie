@@ -24,8 +24,13 @@ rescue GoogleDrive::AuthenticationError => e
   if @attempts < 2
     retry
   else
+    puts "Unable to access Google Drive"
     puts "run 'lionel authorize'"
   end
+
+rescue Trello::Error, Trello::InvalidAccessToken => e
+  puts "Unable to access Trello"
+  puts "run 'lionel authorize'"
 
 rescue StandardError => e
   puts e.class

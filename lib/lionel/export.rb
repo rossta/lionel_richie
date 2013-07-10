@@ -2,36 +2,11 @@ module Lionel
   class Export
 
     attr_reader :options
+
     def initialize(options = {})
       @options = options
-      configure
-    end
-
-    def google_doc_id
-      ENV['GOOGLE_DOC_ID']
-    end
-
-    def trello_board_id
-      ENV['TRELLO_BOARD_ID']
-    end
-
-    def google_token
-      ENV['GOOGLE_TOKEN']
-    end
-
-    def trello_key
-      ENV['TRELLO_KEY']
-    end
-
-    def trello_token
-      ENV['TRELLO_TOKEN']
-    end
-
-    def configure
-      Trello.configure do |c|
-        c.developer_public_key  = trello_key
-        c.member_token          = trello_token
-      end
+      authorize_trello
+      authorize_google
     end
 
     def board
@@ -41,7 +16,9 @@ module Lionel
     def cards
       cards ||= [].tap do |c|
         # iterate over active lists rather
-        # than retrieving all historical cards
+        # than retrieving all historical cards;
+        # trello api returns association proxy
+        # that does not respond to "flatten"
         board.lists.each do |list|
           list.cards.each do |card|
             c << card
@@ -50,23 +27,16 @@ module Lionel
       end.map { |c| Lionel::ProxyCard.new(c) }
     end
 
-    def google_doc
-      @google_doc ||= begin
-        session = GoogleDrive.login_with_oauth(google_token)
-        session.spreadsheet_by_key(google_doc_id)
-      end
+    def spreadsheet
+      @spreadsheet ||= google_session.spreadsheet_by_key(spreadsheet_id)
     end
 
     def worksheet
-      @worksheet ||= Lionel::ProxyWorksheet.new(google_doc.worksheets[0])
-    end
-
-    def authenticate
-      cards && worksheet
+      @worksheet ||= Lionel::ProxyWorksheet.new(spreadsheet.worksheets[0])
     end
 
     def load
-      puts "Exporting trello board '#{board.name}' (#{trello_board_id}) to " + "google doc #{google_doc.title} (#{google_doc_id})"
+      puts "Exporting trello board '#{board.name}' (#{trello_board_id}) to " + "google doc '#{spreadsheet.title}' (#{spreadsheet_id})"
 
       start_row = 2
       rows = worksheet.size
@@ -91,6 +61,25 @@ module Lionel
 
       card_rows.each do |row, card|
         Timeout.timeout(5) { sync_row(row, card) }
+      end
+    end
+
+    class CardMap
+      include Enumerable
+
+      attr_reader :cards, :worksheet
+
+      def initialize(cards, worksheet)
+        @cards, @worksheet = cards, worksheet
+      end
+
+      def each(&block)
+        card_rows.each(&block)
+      end
+
+      def card_rows
+        @card_rows ||= {}.tap do |map|
+        end
       end
     end
 
@@ -146,6 +135,35 @@ module Lionel
     rescue Trello::Error => e
       puts e.inspect
       puts card.inspect
+    end
+
+
+    def authorize_trello
+      trello_session.configure
+    end
+
+    def authorize_google
+      google_session
+    end
+
+    def google_session
+      @google_session ||= GoogleDrive.login_with_oauth(google_token)
+    end
+
+    def trello_session
+      @trello_session ||= TrelloAuthentication.new
+    end
+
+    def spreadsheet_id
+      ENV['GOOGLE_DOC_ID']
+    end
+
+    def trello_board_id
+      ENV['TRELLO_BOARD_ID']
+    end
+
+    def google_token
+      ENV['GOOGLE_TOKEN']
     end
 
   end

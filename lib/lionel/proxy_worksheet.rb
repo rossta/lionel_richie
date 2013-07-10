@@ -16,5 +16,10 @@ module Lionel
       worksheet["#{col}#{row}"]
     end
 
+    HEADER_ROW = 1
+    def content_rows
+      rows(HEADER_ROW)
+    end
+
   end
 end

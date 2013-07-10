@@ -6,13 +6,13 @@ module Lionel
       commands = []
 
       if yes? "Authorize for Trello?"
-        auth          = Lionel::TrelloAuthentication.new
+        auth = Lionel::TrelloAuthentication.new
 
         Launchy.open(auth.trello_key_url)
         auth.trello_key = ask "Enter trello key:"
 
         Launchy.open(auth.trello_token_url)
-        auth.trello_token  = ask "Enter trello token:"
+        auth.trello_token = ask "Enter trello token:"
 
         commands += auth.commands
       end
@@ -37,11 +37,10 @@ module Lionel
     method_option "print", :aliases => "-p", :type => :boolean, :default => false, :desc => "Print results instead of saving them to Google Docs."
     def export
       export = Lionel::Export.new
-      export.authenticate
 
       welcome = "Trello? Is it me you're looking for?"
       say welcome
-      say "#{'=' * welcome.size}\n"
+      say '=' * welcome.size
 
       export.load
 
@@ -50,12 +49,6 @@ module Lionel
       else
         export.save
       end
-    end
-
-    private
-
-    def save_to_google?
-      !!@save_to_google
     end
 
   end
