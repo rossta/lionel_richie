@@ -6,142 +6,26 @@ Signal.trap("INT") { exit 1 }
 
 require 'lionel_richie'
 
-case ARGV.shift
-when "authorize"
-  def yes?
-    gets.strip =~ /\Ay/i
-  end
-
-  commands = []
-
-  puts "Authorize for Trello?"
-  commands << Lionel::TrelloAuthentication.new.call if yes?
-
-  # Google Auth
-  puts "Authorize for Google?"
-  commands << Lionel::GoogleAuthentication.new.call if yes?
-
-  puts "Run the following:\n"
-  puts commands
-  exit
-when "export"
-  export = true
-else
-  export = false
+# Output message to $stderr, prefixed with the program name
+def pute(*args)
+  first = args.shift.dup
+  first.insert(0, "#{$0}: ")
+  args.unshift(first)
+  $stderr.puts(*args)
 end
 
-puts "Trello? Is it me you're looking for?"
-puts "====================================\n"
-
-google_doc_id   = ENV['GOOGLE_DOC_ID']
-trello_board_id = ENV['TRELLO_BOARD_ID']
-
-Trello.configure do |c|
-  c.developer_public_key = ENV['TRELLO_KEY']
-  c.member_token = ENV['TRELLO_TOKEN']
-end
-
-board = Trello::Board.find(trello_board_id)
-
-cards = []
-board.lists.each do |list|
-  list.cards.each do |card|
-    cards << card
-  end
-end
-
-attempts = 0
 begin
-  session = GoogleDrive.login_with_oauth(ENV['GOOGLE_TOKEN'])
-  google_doc = session.spreadsheet_by_key(google_doc_id)
-  ws = google_doc.worksheets[0]
+  Lionel::CLI.start(ARGV)
+
 rescue GoogleDrive::AuthenticationError => e
-  attempts += 1
-  Lionel::GoogleAuthentication.new.call
-  retry if attempts < 2
+  @attempts ||= 0
+  @attempts += 1
+  Lionel::GoogleAuthentication.new.refresh
+  retry if @attempts < 2
+
+rescue StandardError => e
+  puts e.class
+  puts "-" * e.class.name.size
+  pute e.message
+  exit 1
 end
-
-puts "Syncing trello board '#{board.name}' (#{trello_board_id}) with google doc #{google_doc.title} (#{google_doc_id})"
-
-start_row = 2
-rows = ws.rows.size
-
-card_ids = cards.map(&:id)
-
-def sync_row(ws, row, card, trello_board_id)
-  puts "syncing row[#{row}] with #{card.name}"
-
-  export = Lionel::ProxyCard.new(card)
-
-  ws["B#{row}"] = export.id
-
-  # Card link
-  ws["C#{row}"] = export.link
-
-  # Ready date
-  ready_action = export.first_action do |a|
-    (a.create? && a.board_id == trello_board_id) || a.moved_to?("Ready")
-  end
-  ws["D#{row}"] = export.format_date(ready_action.date) if ready_action
-
-  # In Progress date
-  ws["E#{row}"] = export.date_moved_to("In Progress")
-
-  # Code Review date
-  ws["F#{row}"] = export.date_moved_to("Code Review")
-
-  # Review date
-  ws["G#{row}"] = export.date_moved_to("Review")
-
-  # Deploy date
-  ws["H#{row}"] = export.date_moved_to("Deploy")
-
-  # Completed date
-  ws["I#{row}"] = export.date_moved_to("Completed")
-
-  # Type
-  ws["J#{row}"] = export.type
-
-  # Project
-  ws["K#{row}"] = export.project
-
-  # Estimate
-  ws["L#{row}"] = export.estimate
-
-  # Due Date
-  ws["M#{row}"] = export.due_date
-
-rescue Trello::Error => e
-  puts e.inspect
-  puts card.inspect
-end
-
-card_rows = {}
-
-# Find existing rows for current cards
-(start_row..rows).each do |row|
-  cell_id = ws["B#{row}"]
-  next unless cell_id.present?
-  card = cards.find { |c| c.id == cell_id }
-  next unless card.present?
-  card_rows[row] = card
-end
-
-# Set available rows for new cards
-new_cards = cards - card_rows.values
-new_cards.each_with_index do |card, i|
-  row = rows + i + 1
-  card_rows[row] = card
-end
-
-card_rows.each do |row, card|
-  Timeout.timeout(5) { sync_row(ws, row, card, trello_board_id) }
-end
-
-if export
-  ws.save
-  puts "Saved!"
-else
-  puts ws.rows
-end
-

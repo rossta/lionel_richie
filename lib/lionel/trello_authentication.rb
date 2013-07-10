@@ -1,33 +1,35 @@
 module Lionel
   class TrelloAuthentication
 
-    attr_reader :trello_key, :trello_token
+    attr_accessor :trello_key, :trello_token
 
-    def call
+    def commands
       [].tap do |commands|
-        commands << get_trello_key
-        commands << get_trello_token
+        commands << trello_key_command
+        commands << trello_token_command
       end
+    end
+
+    def trello_key_url
+      "https://trello.com/1/appKey/generate"
+    end
+
+    def trello_token_url(key = trello_key)
+      "https://trello.com/1/authorize?key=#{key}&name=#{app_name}&response_type=token&scope=read,write,account&expiration=never"
+    end
+
+    def app_name
+      "LionelRichie"
     end
 
     private
 
-    def get_trello_key
-      Launchy.open "https://trello.com/1/appKey/generate"
-
-      puts "Enter your trello key:"
-      @trello_key = gets.strip
-
+    def trello_key_command
       ENV['TRELLO_KEY'] = trello_key
       "export TRELLO_KEY=#{trello_key}"
     end
 
-    def get_trello_token
-      Launchy.open "https://trello.com/1/authorize?key=#{trello_key}&name=LionelRichie&response_type=token&scope=read,write,account&expiration=never"
-
-      puts "Enter your trello token"
-      @trello_token = gets.strip
-
+    def trello_token_command
       ENV['TRELLO_TOKEN'] = trello_token
       "export TRELLO_TOKEN=#{trello_token}"
     end

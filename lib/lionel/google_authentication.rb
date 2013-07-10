@@ -17,6 +17,10 @@ module Lionel
       end
     end
 
+    def refresh
+      call
+    end
+
     def request_refreshed_access_token
       access_token = OAuth2::AccessToken.from_hash(client,
           {:refresh_token => refresh_token, :expires_at => 36000})
