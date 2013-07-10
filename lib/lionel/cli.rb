@@ -9,17 +9,22 @@ module Lionel
         auth          = Lionel::TrelloAuthentication.new
 
         Launchy.open(auth.trello_key_url)
-        auth.trello_key = ask "Enter trello key: "
+        auth.trello_key = ask "Enter trello key:"
 
         Launchy.open(auth.trello_token_url)
-        auth.trello_token  = ask "Enter trello token: "
+        auth.trello_token  = ask "Enter trello token:"
 
         commands += auth.commands
       end
 
       # Google Auth
       if yes? "Authorize for Google?"
-        commands += Lionel::GoogleAuthentication.new.call
+        auth = Lionel::GoogleAuthentication.new
+
+        Launchy.open(auth.authorize_url)
+        auth.retrieve_access_token ask("Enter your google key:")
+
+        commands += auth.commands
       end
 
       if commands.any?

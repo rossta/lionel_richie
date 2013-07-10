@@ -1,41 +1,32 @@
 module Lionel
   class GoogleAuthentication
 
-    def call
-      access_token = if refresh_token
-        request_refreshed_access_token
-      else
-        request_new_access_token
-      end
+    attr_reader :access_token
 
-      [].tap do |commands|
+    def commands
+      raise "No access token" unless access_token
+      [].tap do |c|
         ENV['GOOGLE_TOKEN'] = access_token.token
-        commands << "export GOOGLE_TOKEN=#{access_token.token}"
+        c << "export GOOGLE_TOKEN=#{access_token.token}"
 
         ENV['GOOGLE_REFRESH_TOKEN'] = access_token.refresh_token
-        commands << "export GOOGLE_REFRESH_TOKEN=#{access_token.refresh_token}"
+        c << "export GOOGLE_REFRESH_TOKEN=#{access_token.refresh_token}"
       end
+    end
+
+    def retrieve_access_token(authorization_code)
+      @access_token = client.auth_code.get_token(authorization_code,
+        :redirect_uri => "urn:ietf:wg:oauth:2.0:oob")
     end
 
     def refresh
-      call
-    end
+      return false unless refresh_token
 
-    def request_refreshed_access_token
-      access_token = OAuth2::AccessToken.from_hash(client,
+      current_token = OAuth2::AccessToken.from_hash(client,
           {:refresh_token => refresh_token, :expires_at => 36000})
-      access_token.refresh! # returns new access_token
+      @access_token = current_token.refresh! # returns new access_token
     end
 
-    # Redirect the user to authorize_url and get authorization code from redirect URL.
-    def request_new_access_token
-      Launchy.open authorize_url
-
-      puts "Enter your google key:"
-      authorization_code = gets.strip
-      client.auth_code.get_token(authorization_code,
-        :redirect_uri => "urn:ietf:wg:oauth:2.0:oob")
-    end
 
     def authorize_url
       client.auth_code.authorize_url(
@@ -45,6 +36,8 @@ module Lionel
             "https://docs.googleusercontent.com/ " +
             "https://spreadsheets.google.com/feeds/")
     end
+
+    private
 
     def client
       @client ||= OAuth2::Client.new(client_id, client_secret,

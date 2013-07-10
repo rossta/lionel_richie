@@ -21,7 +21,11 @@ rescue GoogleDrive::AuthenticationError => e
   @attempts ||= 0
   @attempts += 1
   Lionel::GoogleAuthentication.new.refresh
-  retry if @attempts < 2
+  if @attempts < 2
+    retry
+  else
+    puts "run 'lionel authorize'"
+  end
 
 rescue StandardError => e
   puts e.class
