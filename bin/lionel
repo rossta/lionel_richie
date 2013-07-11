@@ -17,13 +17,16 @@ end
 begin
   Lionel::CLI.start(ARGV)
 
-rescue GoogleDrive::AuthenticationError => e
+rescue GoogleDrive::Error, GoogleDrive::AuthenticationError => e
   @attempts ||= 0
   @attempts += 1
   Lionel::GoogleAuthentication.new.refresh
   if @attempts < 2
     retry
   else
+    puts e.class
+    puts "-" * e.class.name.size
+    pute e.message
     puts "Unable to access Google Drive"
     puts "run 'lionel authorize'"
   end
@@ -36,5 +39,5 @@ rescue StandardError => e
   puts e.class
   puts "-" * e.class.name.size
   pute e.message
-  exit 1
+  raise e
 end

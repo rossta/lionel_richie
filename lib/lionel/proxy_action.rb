@@ -7,7 +7,6 @@ module Lionel
       @action = action
     end
 
-
     def data_attributes(key)
       data[key] || {}
     end

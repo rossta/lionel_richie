@@ -1,11 +1,15 @@
 module Lionel
   class CLI < Thor
 
-    desc "authorize", "Allows application to request user authorization"
-    def authorize
-      commands = []
+    def initialize(*)
+      @configuration = Lionel::Configuration.instance
+      super
+    end
 
-      if yes? "Authorize for Trello?"
+    desc "authorize PROVIDER", "Allows application to request user authorization for provider (google|trello)"
+    def authorize(provider)
+      case provider
+      when 'trello'
         auth = Lionel::TrelloAuthentication.new
 
         Launchy.open(auth.trello_key_url)
@@ -14,22 +18,20 @@ module Lionel
         Launchy.open(auth.trello_token_url)
         auth.trello_token = ask "Enter trello token:"
 
-        commands += auth.commands
-      end
-
-      # Google Auth
-      if yes? "Authorize for Google?"
+        auth.save
+      when 'google'
         auth = Lionel::GoogleAuthentication.new
+
+        Launchy.open(auth.api_console_url)
+        auth.google_client_id = ask("Enter your google client id:")
+        auth.google_client_secret = ask("Enter your google client secret:")
 
         Launchy.open(auth.authorize_url)
         auth.retrieve_access_token ask("Enter your google key:")
 
-        commands += auth.commands
-      end
-
-      if commands.any?
-        say "Run the following:\n"
-        commands.each { |command| say command }
+        auth.save
+      else
+        "Provider not recognized: #{provider}"
       end
     end
 
@@ -38,16 +40,24 @@ module Lionel
     def export
       export = Lionel::Export.new
 
+      unless export.has_sources?
+        export.trello_board_id = ask("Enter a trello board id to export from:")
+        export.google_doc_id = ask("Enter a google doc id to export to:")
+        export.save
+      end
+
+      export.authenticate
+
       welcome = "Trello? Is it me you're looking for?"
       say welcome
       say '=' * welcome.size
 
-      export.load
+      export.download
 
       if options['print']
         export.rows.each { |row| say row }
       else
-        export.save
+        export.upload
       end
     end
 

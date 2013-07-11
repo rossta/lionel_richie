@@ -1,12 +1,18 @@
 module Lionel
   class Export
+    include Configurable
 
-    attr_reader :options
+    config_accessor :google_doc_id, :trello_board_id
 
-    def initialize(options = {})
-      @options = options
-      authorize_trello
-      authorize_google
+    def has_sources?
+      trello_board_id && google_doc_id
+    end
+
+    def data
+      {
+        trello_board_id: trello_board_id,
+        google_doc_id: google_doc_id
+      }
     end
 
     def board
@@ -28,15 +34,15 @@ module Lionel
     end
 
     def spreadsheet
-      @spreadsheet ||= google_session.spreadsheet_by_key(spreadsheet_id)
+      @spreadsheet ||= google_session.spreadsheet_by_key(google_doc_id)
     end
 
     def worksheet
       @worksheet ||= Lionel::ProxyWorksheet.new(spreadsheet.worksheets[0])
     end
 
-    def load
-      puts "Exporting trello board '#{board.name}' (#{trello_board_id}) to " + "google doc '#{spreadsheet.title}' (#{spreadsheet_id})"
+    def download
+      puts "Exporting trello board '#{board.name}' (#{trello_board_id}) to " + "google doc '#{spreadsheet.title}' (#{google_doc_id})"
 
       start_row = 2
       rows = worksheet.size
@@ -83,7 +89,7 @@ module Lionel
       end
     end
 
-    def save
+    def upload
       worksheet.save
     end
 
@@ -137,33 +143,19 @@ module Lionel
       puts card.inspect
     end
 
-
-    def authorize_trello
+    def authenticate
+      return if @authenticated
       trello_session.configure
-    end
-
-    def authorize_google
       google_session
+      @authenticated
     end
 
     def google_session
-      @google_session ||= GoogleDrive.login_with_oauth(google_token)
+      @google_session ||= GoogleDrive.login_with_oauth(configuration.google_token)
     end
 
     def trello_session
       @trello_session ||= TrelloAuthentication.new
-    end
-
-    def spreadsheet_id
-      ENV['GOOGLE_DOC_ID']
-    end
-
-    def trello_board_id
-      ENV['TRELLO_BOARD_ID']
-    end
-
-    def google_token
-      ENV['GOOGLE_TOKEN']
     end
 
   end

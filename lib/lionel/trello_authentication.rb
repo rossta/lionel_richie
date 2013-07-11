@@ -1,27 +1,20 @@
 module Lionel
   class TrelloAuthentication
+    include Configurable
 
-    attr_accessor :trello_key, :trello_token
+    config_accessor :trello_key, :trello_token
 
-    def trello_key
-      @trello_key || ENV['TRELLO_KEY']
-    end
-
-    def trello_token
-      @trello_token || ENV['TRELLO_TOKEN']
+    def data
+      {
+        trello_key: trello_key,
+        trello_token: trello_token
+      }
     end
 
     def configure
       Trello.configure do |c|
         c.developer_public_key  = trello_key
         c.member_token          = trello_token
-      end
-    end
-
-    def commands
-      [].tap do |commands|
-        commands << trello_key_command
-        commands << trello_token_command
       end
     end
 
@@ -35,18 +28,6 @@ module Lionel
 
     def app_name
       "LionelRichie"
-    end
-
-    private
-
-    def trello_key_command
-      ENV['TRELLO_KEY'] = trello_key
-      "export TRELLO_KEY=#{trello_key}"
-    end
-
-    def trello_token_command
-      ENV['TRELLO_TOKEN'] = trello_token
-      "export TRELLO_TOKEN=#{trello_token}"
     end
 
   end

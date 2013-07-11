@@ -1,17 +1,18 @@
 module Lionel
   class GoogleAuthentication
+    include Configurable
 
     attr_reader :access_token
+    config_accessor :google_client_id, :google_client_secret
 
-    def commands
+    def data
       raise "No access token" unless access_token
-      [].tap do |c|
-        ENV['GOOGLE_TOKEN'] = access_token.token
-        c << "export GOOGLE_TOKEN=#{access_token.token}"
-
-        ENV['GOOGLE_REFRESH_TOKEN'] = access_token.refresh_token
-        c << "export GOOGLE_REFRESH_TOKEN=#{access_token.refresh_token}"
-      end
+      {
+        google_token: access_token.token,
+        google_refresh_token: access_token.refresh_token,
+        google_client_id: google_client_id,
+        google_client_secret: google_client_secret
+      }
     end
 
     def retrieve_access_token(authorization_code)
@@ -27,7 +28,6 @@ module Lionel
       @access_token = current_token.refresh! # returns new access_token
     end
 
-
     def authorize_url
       client.auth_code.authorize_url(
         :redirect_uri => "urn:ietf:wg:oauth:2.0:oob",
@@ -37,31 +37,21 @@ module Lionel
             "https://spreadsheets.google.com/feeds/")
     end
 
+    def api_console_url
+      "https://code.google.com/apis/console"
+    end
+
     private
 
     def client
-      @client ||= OAuth2::Client.new(client_id, client_secret,
+      @client ||= OAuth2::Client.new(google_client_id, google_client_secret,
         :site => "https://accounts.google.com",
         :token_url => "/o/oauth2/token",
         :authorize_url => "/o/oauth2/auth")
     end
 
     def refresh_token
-      ENV['GOOGLE_REFRESH_TOKEN']
-    end
-
-    def client_id
-      @client_id ||= ENV['GOOGLE_CLIENT_ID'] || begin
-        puts "Enter your google client id:"
-        ENV['GOOGLE_CLIENT_ID'] = gets.strip
-      end
-    end
-
-    def client_secret
-      @client_secret ||= ENV['GOOGLE_CLIENT_SECRET'] || begin
-        puts "Enter your google client secret:"
-        ENV['GOOGLE_CLIENT_SECRET'] = gets.strip
-      end
+      @refresh_token || configuration.google_refresh_token
     end
 
   end
