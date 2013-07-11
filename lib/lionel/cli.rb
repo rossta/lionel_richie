@@ -37,15 +37,29 @@ module Lionel
 
     desc "export", "Saves Trello export to Google Docs"
     method_option "print", :aliases => "-p", :type => :boolean, :default => false, :desc => "Print results instead of saving them to Google Docs."
+    method_option "trello-board-id", :aliases => "-t", :type => :string, :default => nil, :desc => "Specify the Google Doc."
+    method_option "google-doc-id", :aliases => "-g", :type => :string, :default => nil, :desc => "Print results instead of saving them to Google Docs."
+    method_option "configure", :aliases => "-c", :type => :string, :default => false, :desc => "Save export configuration."
     def export
       export = Lionel::Export.new
 
-      unless export.has_sources?
-        export.trello_board_id = ask("Enter a trello board id to export from:")
-        export.google_doc_id = ask("Enter a google doc id to export to:")
-        export.save
+      if options['google-doc-id']
+        export.google_doc_id = options['google-doc-id']
       end
 
+      if options['trello-board-id']
+        export.trello_board_id = options['trello-board-id']
+      end
+
+      if !export.google_doc_id
+        export.google_doc_id = ask("Enter a google doc id to export to:")
+      end
+
+      if !export.trello_board_id
+        export.trello_board_id = ask("Enter a trello board id to export from:")
+      end
+
+      export.save if options['configure']
       export.authenticate
 
       welcome = "Trello? Is it me you're looking for?"
