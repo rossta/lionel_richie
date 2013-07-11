@@ -20,36 +20,34 @@ Or install it yourself as:
 
 ## Setup
 
-First, you'll create a Google client app. Visit the [Google API console](https://code.google.com/apis/console). Create an app. Feel free to call it "Trello Export" or "Lionel Richie".
+Assuming you have a Google account, a Trello account, and a board you want to export to google docs, you're ready to start using lionel_richie.
 
-Click the tab "API Access", then "Create an OAuth 2.0 Client ID" to open up a modal. Set a client name, like "CLI" for command line interface and continue. Next the modal presents "Client ID Settings"; choose "Installed Application" for "Application type", and "Other" for "Installed application type". Now press "Create client ID".
+You'll first need to authorize your CLI to use the Trello and Google APIs.
 
-From your newly created client settings, grab the client ID and client secret. Add them to your environment:
+To authorize, sign in to Trello and run the following command:
 
-    $ export GOOGLE_CLIENT_ID=your-google-client-id
-    $ export GOOGLE_CLIENT_SECRET=your-google-client-secret
+    $ lionel authorize trello
 
-Next, you'll need to authorize the lionel_richie CLI. Run the following:
+This command will direct you to a URL which has your trello key. Enter this into the CLI. You'll then be directed to a URL where you'll authorize the application to get your trello token. If you entered the key and token correctly, you should now be authorized to use Trello.
 
-    $ authorize_lionel
+To authorize Google, run the following command:
 
-Follow the instructions, which will include entering info on the command line from webpages on Trello and Google. If successful, you'll be able to export the following environment variables needed to run the export.
+    $ lionel authorize google
 
-    $ export TRELLO_KEY=your-trello-key
-    $ export TRELLO_TOKEN=your-trello-token
-    $ export GOOGLE_TOKEN=your-google-token
-    $ export GOOGLE_REFRESH_TOKEN=your-google-refresh-token
+This command will direct you to the [Google API console](https://code.google.com/apis/console). You'll need to create a Google client app for LionelRichie. Feel free to call it whatever you want. Once you have registered a client app, click the tab "API Access", then "Create an OAuth 2.0 Client ID" to open up a modal. Set a client name, like "CLI" for command line interface and continue. Next the modal presents "Client ID Settings"; choose "Installed Application" for "Application type", and "Other" for "Installed application type". Now press "Create client ID". From your newly created client settings, grab the client id and client secret. Enter them in the CLI.
 
-Finally, you need to set the trello board and the google doc you want to export. You can get these from the respective URLs for those resources.
-
-    $ export TRELLO_BOARD_ID=your-trello-board-id
-    $ export GOOGLE_DOC_ID=your-google-doc-id
+You'll then be directed to authorize the application and retrieve your google token.
 
 You should now be ready to run the export:
 
-    $ lionel
+    $ lionel export           # uploads to your google doc
+    $ lionel export --print   # prints the output without uploading
 
-## Crafting the Export
+When running this command for the first time, you'll be asked to enter your trello board id and google doc id, which you can grab from the respective URLs of those resources.
+
+Run `lionel` to see a list of the available commands and options.
+
+## Crafting the Export (Doesn't exist yet)
 
 ```ruby
 
