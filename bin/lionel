@@ -28,12 +28,12 @@ rescue GoogleDrive::Error, GoogleDrive::AuthenticationError => e
     puts "-" * e.class.name.size
     pute e.message
     puts "Unable to access Google Drive"
-    puts "run 'lionel authorize'"
+    puts "run 'lionel authorize google'"
   end
 
 rescue Trello::Error, Trello::InvalidAccessToken => e
   puts "Unable to access Trello"
-  puts "run 'lionel authorize'"
+  puts "run 'lionel authorize trello'"
 
 rescue StandardError => e
   puts e.class

@@ -1,6 +1,6 @@
 module Lionel
   class ProxyWorksheet
-    delegate :rows, to: :worksheet
+    delegate :rows, :save, to: :worksheet
     delegate :size, to: :rows
 
     attr_reader :worksheet
