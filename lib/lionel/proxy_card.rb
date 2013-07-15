@@ -11,8 +11,10 @@ module Lionel
       %Q[=HYPERLINK("#{card.url}", "#{card.name.gsub(/"/, "")}")]
     end
 
-    def actions
-      @actions ||= card.actions.map { |a| Lionel::ProxyAction.new(a) }
+    MAX_ACTIONS = 1000
+    def actions(options = {})
+      options[:limit] = options.fetch(:limit, MAX_ACTIONS)
+      @actions ||= card.actions(options).map { |a| Lionel::ProxyAction.new(a) }
     end
 
     def action_date(&block)
