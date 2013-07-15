@@ -2,7 +2,8 @@ module Lionel
   class GoogleAuthentication
     include Configurable
 
-    attr_reader :access_token
+    attr_accessor :access_token
+    attr_writer :client
     config_accessor :google_client_id, :google_client_secret
 
     def data
@@ -41,14 +42,14 @@ module Lionel
       "https://code.google.com/apis/console"
     end
 
-    private
-
     def client
       @client ||= OAuth2::Client.new(google_client_id, google_client_secret,
         :site => "https://accounts.google.com",
         :token_url => "/o/oauth2/token",
         :authorize_url => "/o/oauth2/auth")
     end
+
+    private
 
     def refresh_token
       @refresh_token || configuration.google_refresh_token
