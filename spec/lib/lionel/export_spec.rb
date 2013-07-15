@@ -17,7 +17,7 @@ describe Lionel::Export do
 
     it "can save the configuration data" do
       subject.configuration.should_receive(:save).with(subject.data)
-      subject.save
+      subject.save_configuration
     end
 
     it { subject.should be_configured }

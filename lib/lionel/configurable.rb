@@ -8,7 +8,7 @@ module Lionel
       Configuration.instance
     end
 
-    def save
+    def save_configuration
       configuration.save(data)
     end
 

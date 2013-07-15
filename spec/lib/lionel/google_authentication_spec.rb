@@ -27,7 +27,7 @@ describe Lionel::GoogleAuthentication do
 
     it "can save the configuration data" do
       subject.configuration.should_receive(:save).with(subject.data)
-      subject.save
+      subject.save_configuration
     end
 
     it "creates new Oauth2 client" do

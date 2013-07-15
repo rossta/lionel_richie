@@ -1,13 +1,9 @@
 module Lionel
   class CLI < Thor
 
-    def initialize(*)
-      @configuration = Lionel::Configuration.instance
-      super
-    end
-
     desc "authorize PROVIDER", "Allows application to request user authorization for provider (google|trello)"
-    method_option "new-client", :aliases => "-n", :type => :boolean, :default => true, :desc => "Set new google client credentials."
+    method_option "new-client", :aliases => "-n", :type => :boolean,
+      :default => false, :desc => "Set new google client credentials."
     def authorize(provider)
       case provider
       when 'trello'
@@ -20,7 +16,7 @@ module Lionel
           Launchy.open(auth.trello_token_url)
           auth.trello_token = ask "Enter trello token:"
 
-          auth.save
+          auth.save_configuration
         else
           say "Trello is already configured. Run 'lionel authorize trello -n' to reset."
         end
@@ -36,7 +32,7 @@ module Lionel
         Launchy.open(auth.authorize_url)
         auth.retrieve_access_token ask("Enter your google key:")
 
-        auth.save
+        auth.save_configuration
       else
         "Provider not recognized: #{provider}"
       end
@@ -62,7 +58,7 @@ module Lionel
         export.trello_board_id = ask("Enter a trello board id to export from:")
       end
 
-      export.save if options['save']
+      export.save_configuration if options['save']
 
       export.authenticate
 
