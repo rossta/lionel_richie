@@ -4,10 +4,6 @@ module Lionel
 
     config_accessor :google_doc_id, :trello_board_id
 
-    def has_sources?
-      trello_board_id && google_doc_id
-    end
-
     def data
       {
         trello_board_id: trello_board_id,

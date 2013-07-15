@@ -38,6 +38,22 @@ describe Lionel::GoogleAuthentication do
         :authorize_url => "/o/oauth2/auth")
       subject.client
     end
+
+    it { subject.should be_configured }
+
+    context "not configured" do
+      before do
+        subject.configuration.stub(google_client_id: nil, google_client_secret: nil)
+      end
+
+      it { subject.google_client_id = nil;
+            subject.should_not be_configured }
+      it { subject.google_client_secret = nil;
+            subject.should_not be_configured }
+      it { subject.google_client_id = nil;
+            subject.google_client_secret = nil;
+            subject.should_not be_configured }
+    end
   end
 
   describe "oauth2" do

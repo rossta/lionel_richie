@@ -7,24 +7,31 @@ module Lionel
     end
 
     desc "authorize PROVIDER", "Allows application to request user authorization for provider (google|trello)"
+    method_option "new-client", :aliases => "-n", :type => :boolean, :default => true, :desc => "Set new google client credentials."
     def authorize(provider)
       case provider
       when 'trello'
         auth = Lionel::TrelloAuthentication.new
 
-        Launchy.open(auth.trello_key_url)
-        auth.trello_key = ask "Enter trello key:"
+        if options['new-client'] || !auth.configured?
+          Launchy.open(auth.trello_key_url)
+          auth.trello_key = ask "Enter trello key:"
 
-        Launchy.open(auth.trello_token_url)
-        auth.trello_token = ask "Enter trello token:"
+          Launchy.open(auth.trello_token_url)
+          auth.trello_token = ask "Enter trello token:"
 
-        auth.save
+          auth.save
+        else
+          say "Trello is already configured. Run 'lionel authorize trello -n' to reset."
+        end
       when 'google'
         auth = Lionel::GoogleAuthentication.new
 
-        Launchy.open(auth.api_console_url)
-        auth.google_client_id = ask("Enter your google client id:")
-        auth.google_client_secret = ask("Enter your google client secret:")
+        if options['new-client'] || !auth.configured?
+          Launchy.open(auth.api_console_url)
+          auth.google_client_id = ask("Enter your google client id:")
+          auth.google_client_secret = ask("Enter your google client secret:")
+        end
 
         Launchy.open(auth.authorize_url)
         auth.retrieve_access_token ask("Enter your google key:")
@@ -37,9 +44,9 @@ module Lionel
 
     desc "export", "Saves Trello export to Google Docs"
     method_option "print", :aliases => "-p", :type => :boolean, :default => false, :desc => "Print results instead of saving them to Google Docs."
-    method_option "trello-board-id", :aliases => "-t", :type => :string, :default => nil, :desc => "Specify the Google Doc."
-    method_option "google-doc-id", :aliases => "-g", :type => :string, :default => nil, :desc => "Print results instead of saving them to Google Docs."
-    method_option "configure", :aliases => "-c", :type => :string, :default => true, :desc => "Save export configuration."
+    method_option "trello-board-id", :aliases => "-t", :type => :string, :default => nil, :desc => "Specify the source Trello board id."
+    method_option "google-doc-id", :aliases => "-g", :type => :string, :default => nil, :desc => "Specify the target Google doc id."
+    method_option "save", :aliases => "-c", :type => :string, :default => true, :desc => "Save the command line ids as the default configuration."
     def export
       export = Lionel::Export.new
 
@@ -55,7 +62,7 @@ module Lionel
         export.trello_board_id = ask("Enter a trello board id to export from:")
       end
 
-      export.save if options['configure']
+      export.save if options['save']
 
       export.authenticate
 

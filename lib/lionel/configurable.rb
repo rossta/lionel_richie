@@ -16,12 +16,21 @@ module Lionel
       {}
     end
 
+    def configured?
+      self.class.config_accessors.all? { |accessor| !!send(accessor) }
+    end
   end
 
   module ClassMethods
 
+    def config_accessors
+      @config_accessors ||= []
+    end
+
     def config_accessor(*args)
       attr_writer(*args)
+
+      args.each { |accessor| config_accessors << accessor }
 
       args.each do |reader|
         define_method(reader) do
