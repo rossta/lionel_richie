@@ -2,7 +2,13 @@ module Lionel
   class Export
     include Configurable
 
+    attr_reader :options
+
     config_accessor :google_doc_id, :trello_board_id
+
+    def initialize(options = {})
+      @options = options
+    end
 
     def data
       {
@@ -16,17 +22,18 @@ module Lionel
     end
 
     def cards
-      cards ||= [].tap do |c|
-        # iterate over active lists rather
-        # than retrieving all historical cards;
-        # trello api returns association proxy
-        # that does not respond to "flatten"
-        board.lists.each do |list|
-          list.cards.each do |card|
-            c << card
-          end
-        end
-      end.map { |c| Lionel::ProxyCard.new(c) }
+      # iterate over active lists rather
+      # than retrieving all historical cards;
+      # trello api returns association proxy
+      # that does not respond to "flatten"
+      @cards ||= begin
+        case options.fetch(:filter, :open_cards)
+        when :open_cards
+          retrieve_open_cards
+        when :open_lists
+          retrieve_open_cards_in_open_lists
+        end.map { |c| Lionel::ProxyCard.new(c) }
+      end
     end
 
     def spreadsheet
@@ -152,6 +159,20 @@ module Lionel
 
     def trello_session
       @trello_session ||= TrelloAuthentication.new
+    end
+
+    def retrieve_open_cards
+      board.cards(filter: :open)
+    end
+
+    def retrieve_open_cards_in_open_lists
+      [].tap do |c|
+        board.lists(filter: :open).each do |list|
+          list.cards(filter: :open).each do |card|
+            c << card
+          end
+        end
+      end
     end
 
   end

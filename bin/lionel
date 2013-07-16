@@ -4,7 +4,12 @@
 # https://twitter.com/mitchellh/status/283014103189053442
 Signal.trap("INT") { exit 1 }
 
-require 'lionel_richie'
+begin
+  require 'lionel_richie'
+rescue LoadError
+  $LOAD_PATH.unshift File.expand_path(File.dirname(__FILE__) + '/../lib')
+  require 'lionel_richie'
+end
 
 # Output message to $stderr, prefixed with the program name
 def pute(*args)
