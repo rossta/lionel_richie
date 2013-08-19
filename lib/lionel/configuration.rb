@@ -42,7 +42,7 @@ module Lionel
     def load_data
       load_file
     rescue Errno::ENOENT
-      puts "Couldn't load file, falling back to ENV"
+      Lionel.logger.info "Couldn't load file, falling back to ENV"
       default_data
     end
 

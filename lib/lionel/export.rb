@@ -41,11 +41,21 @@ module Lionel
     end
 
     def worksheet
-      @worksheet ||= Lionel::ProxyWorksheet.new(spreadsheet.worksheets[0])
+      @worksheet ||= get_worksheet
+    end
+
+    def process
+      download
+
+      if options['print']
+        rows.each { |row| Lionel.logger.info row.inspect }
+      else
+        upload
+      end
     end
 
     def download
-      puts "Exporting trello board '#{board.name}' (#{trello_board_id}) to " + "google doc '#{spreadsheet.title}' (#{google_doc_id})"
+      Lionel.logger.info "Exporting trello board '#{board.name}' (#{trello_board_id}) to " + "google doc '#{spreadsheet.title}' (#{google_doc_id})"
 
       start_row = 2
       rows = worksheet.size
@@ -69,25 +79,11 @@ module Lionel
       end
 
       card_rows.each do |row, card|
-        Timeout.timeout(5) { sync_row(row, card) }
-      end
-    end
-
-    class CardMap
-      include Enumerable
-
-      attr_reader :cards, :worksheet
-
-      def initialize(cards, worksheet)
-        @cards, @worksheet = cards, worksheet
-      end
-
-      def each(&block)
-        card_rows.each(&block)
-      end
-
-      def card_rows
-        @card_rows ||= {}.tap do |map|
+        begin
+          Timeout.timeout(5) { sync_row(row, card) }
+        rescue Timeout::Error, Trello::Error => e
+          Lionel.logger.warn e.inspect
+          Lionel.logger.warn card.inspect
         end
       end
     end
@@ -101,7 +97,7 @@ module Lionel
     end
 
     def sync_row(row, card)
-      puts "row[#{row}] : #{card.name}"
+      Lionel.logger.info "row[#{row}] = #{card.name}"
 
       worksheet["B",row] = card.id
 
