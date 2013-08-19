@@ -27,10 +27,10 @@ module Lionel
       # trello api returns association proxy
       # that does not respond to "flatten"
       @cards ||= begin
-        case options.fetch(:filter, :open_cards)
-        when :open_cards
+        case options.fetch('filter', 'open-lists')
+        when 'open-cards'
           retrieve_open_cards
-        when :open_lists
+        when 'open-lists'
           retrieve_open_cards_in_open_lists
         end.map { |c| Lionel::ProxyCard.new(c) }
       end
@@ -136,17 +136,23 @@ module Lionel
 
       # Due Date
       worksheet["M",row] = card.due_date
-
-    rescue Trello::Error => e
-      puts e.inspect
-      puts card.inspect
     end
 
     def authenticate
       return if @authenticated
-      trello_session.configure
-      google_session
+      authenticate_trello
+      authenticate_google
       @authenticated
+    end
+
+    def authenticate_trello
+      trello_session.configure
+      @board = Trello::Board.find(trello_board_id)
+    end
+
+    def authenticate_google
+      google_session
+      @worksheet = Lionel::ProxyWorksheet.new(spreadsheet.worksheets[0])
     end
 
     def google_session
@@ -167,6 +173,25 @@ module Lionel
           list.cards(filter: :open).each do |card|
             c << card
           end
+        end
+      end
+    end
+
+    class CardMap
+      include Enumerable
+
+      attr_reader :cards, :worksheet
+
+      def initialize(cards, worksheet)
+        @cards, @worksheet = cards, worksheet
+      end
+
+      def each(&block)
+        card_rows.each(&block)
+      end
+
+      def card_rows
+        @card_rows ||= {}.tap do |map|
         end
       end
     end

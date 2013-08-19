@@ -1,6 +1,5 @@
 module Lionel
   class CLI < Thor
-
     desc "authorize PROVIDER", "Allows application to request user authorization for provider (google|trello)"
     method_option "new-client", :aliases => "-n", :type => :boolean,
       :default => false, :desc => "Set new google client credentials."
@@ -43,8 +42,9 @@ module Lionel
     method_option "trello-board-id", :aliases => "-t", :type => :string, :default => nil, :desc => "Specify the source Trello board id."
     method_option "google-doc-id", :aliases => "-g", :type => :string, :default => nil, :desc => "Specify the target Google doc id."
     method_option "save", :aliases => "-c", :type => :string, :default => true, :desc => "Save the command line ids as the default configuration."
+    method_option "filter", :aliases => "-f", :type => :string, :default => 'open-lists', :desc => "Possible values: open-cards, open-lists."
     def export
-      export = Lionel::Export.new
+      export = Lionel::Export.new(options)
 
       if options['google-doc-id']
         export.google_doc_id = options['google-doc-id']
@@ -60,19 +60,26 @@ module Lionel
 
       export.save_configuration if options['save']
 
-      export.authenticate
+      begin
+        export.authenticate
+      rescue GoogleDrive::Error, GoogleDrive::AuthenticationError
+        @google_attempts ||= 0
+        @google_attempts += 1
+        Lionel::GoogleAuthentication.new.refresh
+        if @google_attempts < 2
+          retry
+        else
+          invoke :authorize, ['google']
+        end
+      rescue Trello::Error, Trello::InvalidAccessToken
+        invoke :authorize, ['trello']
+      end
 
       welcome = "Trello? Is it me you're looking for?"
       say welcome
       say '=' * welcome.size
 
-      export.download
-
-      if options['print']
-        export.rows.each { |row| say row }
-      else
-        export.upload
-      end
+      export.process
     end
 
   end
