@@ -80,7 +80,13 @@ module Lionel
 
       card_rows.each do |row, card|
         begin
-          Timeout.timeout(5) { sync_row(row, card) }
+          Timeout.timeout(5) {
+            Lionel.logger.info "row[#{row}] = #{card.name}"
+
+            sync_columns(card).each do |col, value|
+              worksheet[col,row] = value
+            end
+          }
         rescue Timeout::Error, Trello::Error => e
           Lionel.logger.warn e.inspect
           Lionel.logger.warn card.inspect
@@ -96,46 +102,46 @@ module Lionel
       worksheet.rows
     end
 
-    def sync_row(row, card)
-      Lionel.logger.info "row[#{row}] = #{card.name}"
+    def sync_columns(card)
+      {}.tap do |columns|
+        columns["B"] = card.id
 
-      worksheet["B",row] = card.id
+        # Card link
+        columns["C"] = card.link
 
-      # Card link
-      worksheet["C",row] = card.link
+        # Ready date
+        ready_action = card.first_action do |a|
+          (a.create? && a.board_id == trello_board_id) || a.moved_to?("Ready")
+        end
+        columns["D"] = card.format_date(ready_action.date) if ready_action
 
-      # Ready date
-      ready_action = card.first_action do |a|
-        (a.create? && a.board_id == trello_board_id) || a.moved_to?("Ready")
+        # In Progress date
+        columns["E"] = card.date_moved_to("In Progress")
+
+        # Code Review date
+        columns["F"] = card.date_moved_to("Code Review")
+
+        # Review date
+        columns["G"] = card.date_moved_to("Review")
+
+        # Deploy date
+        columns["H"] = card.date_moved_to("Deploy")
+
+        # Completed date
+        columns["I"] = card.date_moved_to("Completed")
+
+        # Type
+        columns["J"] = card.type
+
+        # Project
+        columns["K"] = card.project
+
+        # Estimate
+        columns["L"] = card.estimate
+
+        # Due Date
+        columns["M"] = card.due_date
       end
-      worksheet["D",row] = card.format_date(ready_action.date) if ready_action
-
-      # In Progress date
-      worksheet["E",row] = card.date_moved_to("In Progress")
-
-      # Code Review date
-      worksheet["F",row] = card.date_moved_to("Code Review")
-
-      # Review date
-      worksheet["G",row] = card.date_moved_to("Review")
-
-      # Deploy date
-      worksheet["H",row] = card.date_moved_to("Deploy")
-
-      # Completed date
-      worksheet["I",row] = card.date_moved_to("Completed")
-
-      # Type
-      worksheet["J",row] = card.type
-
-      # Project
-      worksheet["K",row] = card.project
-
-      # Estimate
-      worksheet["L",row] = card.estimate
-
-      # Due Date
-      worksheet["M",row] = card.due_date
     end
 
     def authenticate
