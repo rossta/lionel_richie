@@ -7,8 +7,8 @@ module Lionel
       @card = card
     end
 
-    def link
-      %Q[=HYPERLINK("#{card.url}", "#{card.name.gsub(/"/, "")}")]
+    def link(name = card.name)
+      %Q[=HYPERLINK("#{card.url}", "#{name.gsub(/"/, "")}")]
     end
 
     MAX_ACTIONS = 1000

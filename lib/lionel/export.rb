@@ -107,7 +107,7 @@ module Lionel
         columns["B"] = card.id
 
         # Card link
-        columns["C"] = card.link
+        columns["C"] = card.link(card.name.gsub(/^\[.*\]\s*/, ""))
 
         # Ready date
         ready_action = card.first_action do |a|
