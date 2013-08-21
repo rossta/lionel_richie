@@ -57,28 +57,7 @@ module Lionel
     def download
       Lionel.logger.info "Exporting trello board '#{board.name}' (#{trello_board_id}) to " + "google doc '#{spreadsheet.title}' (#{google_doc_id})"
 
-      start_row = 2
-      rows = worksheet.size
-
-      card_rows = {}
-
-      # Find existing rows for current cards
-      (start_row..rows).each do |row|
-        cell_id = worksheet["B",row]
-        next unless cell_id.present?
-        card = cards.find { |c| c.id == cell_id }
-        next unless card.present?
-        card_rows[row] = card
-      end
-
-      # Set available rows for new cards
-      new_cards = cards - card_rows.values
-      new_cards.each_with_index do |card, i|
-        row = rows + i + 1
-        card_rows[row] = card
-      end
-
-      card_rows.each do |row, card|
+      card_map.each do |row, card|
         begin
           Timeout.timeout(5) {
             Lionel.logger.info "row[#{row}] = #{card.name}"
@@ -92,6 +71,10 @@ module Lionel
           Lionel.logger.warn card.inspect
         end
       end
+    end
+
+    def card_map
+      @card_map ||= CardMap.new(cards, worksheet)
     end
 
     def upload
@@ -193,14 +176,39 @@ module Lionel
       end
 
       def each(&block)
-        card_rows.each(&block)
+        rows.each(&block)
       end
 
-      def card_rows
-        @card_rows ||= {}.tap do |map|
+      def rows
+        @rows ||= populate_rows
+      end
+
+      private
+
+      def populate_rows
+        Lionel.logger.info "Using CardMap!!!!"
+        {}.tap do |card_rows|
+
+          start_row = 2
+          rows = worksheet.size
+
+          # Find existing rows for current cards
+          (start_row..rows).each do |row|
+            cell_id = worksheet["B",row]
+            next unless cell_id.present?
+            card = cards.find { |c| c.id == cell_id }
+            next unless card.present?
+            card_rows[row] = card
+          end
+
+          # Set available rows for new cards
+          new_cards = cards - card_rows.values
+          new_cards.each_with_index do |card, i|
+            row = rows + i + 1
+            card_rows[row] = card
+          end
         end
       end
     end
-
   end
 end
