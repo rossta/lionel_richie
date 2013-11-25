@@ -4,6 +4,7 @@ require 'ostruct'
 module Lionel
   class Configuration
     include Singleton
+    extend Forwardable
     attr_reader :path, :data
 
     FILE_NAME = '.lionelrc'
@@ -15,7 +16,7 @@ module Lionel
     ]
 
     def self.config_accessor(*args)
-      delegate(*args, to: :data)
+      def_delegators :data, *args
 
       args.each do |accessor|
         define_method("#{accessor}=") do |value|

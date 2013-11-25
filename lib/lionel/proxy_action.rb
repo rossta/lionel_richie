@@ -1,7 +1,9 @@
 module Lionel
   class ProxyAction
+    extend Forwardable
+
     attr_reader :action
-    delegate :data, :type, :date, to: :action
+    def_delegators :action, :data, :type, :date
 
     def initialize(action)
       @action = action

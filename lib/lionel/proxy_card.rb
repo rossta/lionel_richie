@@ -1,7 +1,10 @@
 module Lionel
   class ProxyCard
+    extend Forwardable
+
     attr_reader :card
-    delegate :id, :url, :name, :due, to: :card
+
+    def_delegators :card, :id, :url, :name, :due
 
     def initialize(card)
       @card = card
