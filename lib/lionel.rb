@@ -10,6 +10,7 @@ require 'lionel/cli'
 require 'lionel/configuration'
 require 'lionel/configurable'
 require 'lionel/export'
+require 'lionel/export_builder'
 require 'lionel/proxy_action'
 require 'lionel/proxy_card'
 require 'lionel/proxy_worksheet'
@@ -17,6 +18,9 @@ require 'lionel/trello_authentication'
 require 'lionel/google_authentication'
 
 module Lionel
+  Error = Class.new(StandardError)
+  ColumnConfigurationError = Class.new(Error)
+
   extend self
   attr_accessor :logger
 
@@ -26,6 +30,11 @@ module Lionel
     end
     @logger = logger
   end
+
+  def export(&block)
+    Export.builder = ExportBuilder.build(&block)
+  end
+
 end
 
 Lionel.logger = Logger.new(STDOUT)

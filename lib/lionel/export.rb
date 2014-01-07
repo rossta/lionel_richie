@@ -6,6 +6,14 @@ module Lionel
 
     config_accessor :google_doc_id, :trello_board_id
 
+    def self.builder=(builder)
+      @builder = builder
+    end
+
+    def self.builder
+      @builder
+    end
+
     def initialize(options = {})
       @options = options
     end
@@ -186,10 +194,9 @@ module Lionel
       private
 
       def populate_rows
-        Lionel.logger.info "Using CardMap!!!!"
         {}.tap do |card_rows|
 
-          start_row = 2
+          start_row = 2 # Currently assumes a header column
           rows = worksheet.size
 
           # Find existing rows for current cards
@@ -210,5 +217,6 @@ module Lionel
         end
       end
     end
+
   end
 end
