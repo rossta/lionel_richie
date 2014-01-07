@@ -40,12 +40,8 @@ module Lionel
           retrieve_open_cards
         when 'open-lists'
           retrieve_open_cards_in_open_lists
-        end.map { |c| Lionel::ProxyCard.new(c, card_attributes) }
+        end.map { |c| Lionel::ProxyCard.new(c) }
       end
-    end
-
-    def card_attributes
-      { current_board_id: trello_board_id }
     end
 
     def spreadsheet
@@ -106,7 +102,7 @@ module Lionel
     def sync_columns(card)
       {}.tap do |columns|
         builder.columns.each do |col_name, block|
-          columns[col_name] = card.instance_eval(&block)
+          columns[col_name] = card.instance_exec(self, &block)
         end
       end
     end
