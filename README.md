@@ -1,6 +1,6 @@
 # LionelRichie
 
-LionelRichie is a script for exporting Trello data to Google Docs. 
+LionelRichie is a script for exporting Trello data to Google Docs.
 
 This gem is in its very early stages so its probably not useful to you yet.
 
@@ -55,45 +55,45 @@ Run `lionel` to see a list of the available commands and options.
 
 LionelRichie.export do
   # Card Id
-  b { id }
+  B { id }
 
   # Card Link
-  c { link }
+  C { link }
 
   # Ready date
-  d do
-    ready_action = card.first_action do |a|
-      (a.create? && a.board_id == trello_board_id) || a.moved_to?("Ready")
+  D do |export|
+    ready_action = first_action do |a|
+      (a.create? && a.board_id == export.trello_board_id) || a.moved_to?("Ready")
     end
     format_date(ready_action.date) if ready_action
   end
 
   # In Progress date
-  e { date_moved_to("In Progress") }
+  E { date_moved_to("In Progress") }
 
   # Code Review date
-  f { date_moved_to("Code Review") }
+  F { date_moved_to("Code Review") }
 
   # Review date
-  g { date_moved_to("Review") }
+  G { date_moved_to("Review") }
 
   # Deploy date
-  h { date_moved_to("Deploy") }
+  H { date_moved_to("Deploy") }
 
   # Completed date
-  i { date_moved_to("Completed") }
+  I { date_moved_to("Completed") }
 
   # Type
-  j { type }
+  J { type }
 
   # Project
-  k { project }
+  K { project }
 
   # Estimate
-  l { estimate }
+  L { estimate }
 
   # Due Date
-  m { due_date }
+  M { due_date }
 end
 ```
 
