@@ -2,12 +2,13 @@ module Lionel
   class ProxyCard
     extend Forwardable
 
-    attr_reader :card
+    attr_reader :card, :attributes
 
     def_delegators :card, :id, :url, :name, :due
 
-    def initialize(card)
+    def initialize(card, attributes)
       @card = card
+      @attributes = attributes
     end
 
     def link(name = card.name)
@@ -33,6 +34,13 @@ module Lionel
       format_date(action.date)
     end
 
+    def create_date(start_list_name)
+      ready_action = first_action do |a|
+        (a.create? && a.board_id == attributes[:current_board_id]) || a.moved_to?(start_list_name)
+      end
+      format_date(ready_action.date) if ready_action
+    end
+
     def format_date(date, format = "%m/%d/%Y")
       date.strftime(format)
     end
@@ -54,7 +62,7 @@ module Lionel
     end
 
     def estimate
-      match = card.name.match(/\[(?<estimate>\w)\]/)
+      match = card.name.match(/\[(?<estimate>\w+)\]/)
       return "" unless match
       match[:estimate]
     end

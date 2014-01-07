@@ -17,11 +17,11 @@ describe Lionel::ExportBuilder do
         A "123"
       end
 
-      builder.columns["A"].should eq("123")
+      builder.columns["A"].call.should eq("123")
     end
 
     it "raises error if not a column name (only letters)" do
-      expect { builder.configure { x123 "123" } }.to raise_error(Lionel::ColumnConfigurationError)
+      expect { builder.configure { x123 "123" } }.to raise_error(Lionel::ColumnNameError)
     end
   end
 end

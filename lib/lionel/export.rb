@@ -40,8 +40,12 @@ module Lionel
           retrieve_open_cards
         when 'open-lists'
           retrieve_open_cards_in_open_lists
-        end.map { |c| Lionel::ProxyCard.new(c) }
+        end.map { |c| Lionel::ProxyCard.new(c, card_attributes) }
       end
+    end
+
+    def card_attributes
+      { current_board_id: trello_board_id }
     end
 
     def spreadsheet
@@ -63,6 +67,8 @@ module Lionel
     end
 
     def download
+      raise_missing_builder_error unless builder
+
       Lionel.logger.info "Exporting trello board '#{board.name}' (#{trello_board_id}) to " + "google doc '#{spreadsheet.title}' (#{google_doc_id})"
 
       card_map.each do |row, card|
@@ -93,45 +99,15 @@ module Lionel
       worksheet.rows
     end
 
+    def builder
+      self.class.builder
+    end
+
     def sync_columns(card)
       {}.tap do |columns|
-        columns["B"] = card.id
-
-        # Card link
-        columns["C"] = card.link(card.name.gsub(/^\[.*\]\s*/, ""))
-
-        # Ready date
-        ready_action = card.first_action do |a|
-          (a.create? && a.board_id == trello_board_id) || a.moved_to?("Ready")
+        builder.columns.each do |col_name, block|
+          columns[col_name] = card.instance_eval(&block)
         end
-        columns["D"] = card.format_date(ready_action.date) if ready_action
-
-        # In Progress date
-        columns["E"] = card.date_moved_to("In Progress")
-
-        # Code Review date
-        columns["F"] = card.date_moved_to("Code Review")
-
-        # Review date
-        columns["G"] = card.date_moved_to("Review")
-
-        # Deploy date
-        columns["H"] = card.date_moved_to("Deploy")
-
-        # Completed date
-        columns["I"] = card.date_moved_to("Completed")
-
-        # Type
-        columns["J"] = card.type
-
-        # Project
-        columns["K"] = card.project
-
-        # Estimate
-        columns["L"] = card.estimate
-
-        # Due Date
-        columns["M"] = card.due_date
       end
     end
 
@@ -172,6 +148,19 @@ module Lionel
           end
         end
       end
+    end
+
+    def raise_missing_builder_error
+      message = <<-ERROR.gsub(/^ {6}/, '')
+        The export is not configured. Example:
+
+        Lionel.export do
+          A { id }
+          B { name }
+          C { url }
+        end
+      ERROR
+      raise MissingBuilderError.new(message)
     end
 
     class CardMap

@@ -17,9 +17,9 @@ module Lionel
     def method_missing(sym, *args, &block)
       column_name = sym.to_s.upcase
       if column_name =~ /\A[A-Z]+\z/
-        columns[sym.to_s.upcase] = block_given? ? block : args.first
+        columns[sym.to_s.upcase] = block_given? ? block : lambda { args.first }
       else
-        raise ColumnConfigurationError.new("Method '#{sym}' does not represent a valid Google Spreadsheet column name")
+        raise ColumnNameError.new("Method '#{sym}' does not represent a valid Google Spreadsheet column name")
       end
     end
 

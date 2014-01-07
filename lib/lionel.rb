@@ -19,7 +19,8 @@ require 'lionel/google_authentication'
 
 module Lionel
   Error = Class.new(StandardError)
-  ColumnConfigurationError = Class.new(Error)
+  ColumnNameError = Class.new(Error)
+  MissingBuilderError = Class.new(Error)
 
   extend self
   attr_accessor :logger
@@ -38,3 +39,40 @@ module Lionel
 end
 
 Lionel.logger = Logger.new(STDOUT)
+
+Lionel.export do
+  B { id }
+
+  # Card link
+  C { link(card.name.gsub(/^\[.*\]\s*/, "")) }
+
+  # Ready date
+  D { create_date("Ready") }
+
+  # In Progress date
+  E { date_moved_to("In Progress") }
+
+  # Code Review date
+  F { date_moved_to("Code Review") }
+
+  # Review date
+  G { date_moved_to("Review") }
+
+  # Deploy date
+  H { date_moved_to("Deploy") }
+
+  # Completed date
+  I { date_moved_to("Completed") }
+
+  # Type
+  J { type }
+
+  # Project
+  K { project }
+
+  # Estimate
+  L { estimate }
+
+  # Due Date
+  M { due_date }
+end
