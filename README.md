@@ -42,8 +42,9 @@ You'll then be directed to authorize the application and retrieve your google to
 
 You should now be ready to run the export:
 
-    $ lionel export           # uploads to your google doc
-    $ lionel export --print   # prints the output without uploading
+    $ lionel export                         # uploads to your google doc
+    $ lionel export --print                 # prints the output without uploading
+    $ lionel export -c ./path/to/Lionelfile # uploads export configured by given Lionelfile
 
 When running this command for the first time, you'll be asked to enter your trello board id and google doc id, which you can grab from the respective URLs of those resources.
 
@@ -51,7 +52,10 @@ Run `lionel` to see a list of the available commands and options.
 
 ## Crafting the Export
 
+The export can be configured using the export DSL. Export methods take the form of a Google doc column, e.g. 'A', 'BC', etc. To set the value on a column, pass a value or a block. The block is rendered in the context of each `Card` object populated with data from Trello.
+
 ```ruby
+# Lionelfile
 LionelRichie.export do
   # Card Id
   B { id }
