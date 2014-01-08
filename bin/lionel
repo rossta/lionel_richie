@@ -19,30 +19,4 @@ def pute(*args)
   $stderr.puts(*args)
 end
 
-begin
-  Lionel::CLI.start(ARGV)
-
-rescue GoogleDrive::Error, GoogleDrive::AuthenticationError => e
-  @attempts ||= 0
-  @attempts += 1
-  Lionel::GoogleAuthentication.new.refresh
-  if @attempts < 2
-    retry
-  else
-    puts e.class
-    puts "-" * e.class.name.size
-    pute e.message
-    puts "Unable to access Google Drive"
-    puts "run 'lionel authorize google'"
-  end
-
-rescue Trello::Error, Trello::InvalidAccessToken => e
-  puts "Unable to access Trello"
-  puts "run 'lionel authorize trello'"
-
-rescue StandardError => e
-  puts e.class
-  puts "-" * e.class.name.size
-  pute e.message
-  raise e
-end
+Lionel::CLI.start(ARGV)

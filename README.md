@@ -1,6 +1,6 @@
 # LionelRichie
 
-LionelRichie is a script for exporting Trello data to Google Docs. 
+LionelRichie is a script for exporting Trello data to Google Docs.
 
 This gem is in its very early stages so its probably not useful to you yet.
 
@@ -42,58 +42,61 @@ You'll then be directed to authorize the application and retrieve your google to
 
 You should now be ready to run the export:
 
-    $ lionel export           # uploads to your google doc
-    $ lionel export --print   # prints the output without uploading
+    $ lionel export                         # uploads to your google doc
+    $ lionel export --print                 # prints the output without uploading
+    $ lionel export -c ./path/to/Lionelfile # uploads export configured by given Lionelfile
 
 When running this command for the first time, you'll be asked to enter your trello board id and google doc id, which you can grab from the respective URLs of those resources.
 
 Run `lionel` to see a list of the available commands and options.
 
-## Crafting the Export (Doesn't exist yet)
+## Crafting the Export
+
+The export can be configured using the export DSL. Export methods take the form of a Google doc column, e.g. 'A', 'BC', etc. To set the value on a column, pass a value or a block. The block is rendered in the context of each `Card` object populated with data from Trello.
 
 ```ruby
-
+# Lionelfile
 LionelRichie.export do
   # Card Id
-  b { id }
+  B { id }
 
   # Card Link
-  c { link }
+  C { link }
 
   # Ready date
-  d do
-    ready_action = card.first_action do |a|
-      (a.create? && a.board_id == trello_board_id) || a.moved_to?("Ready")
+  D do |export|
+    ready_action = first_action do |a|
+      (a.create? && a.board_id == export.trello_board_id) || a.moved_to?("Ready")
     end
     format_date(ready_action.date) if ready_action
   end
 
   # In Progress date
-  e { date_moved_to("In Progress") }
+  E { date_moved_to("In Progress") }
 
   # Code Review date
-  f { date_moved_to("Code Review") }
+  F { date_moved_to("Code Review") }
 
   # Review date
-  g { date_moved_to("Review") }
+  G { date_moved_to("Review") }
 
   # Deploy date
-  h { date_moved_to("Deploy") }
+  H { date_moved_to("Deploy") }
 
   # Completed date
-  i { date_moved_to("Completed") }
+  I { date_moved_to("Completed") }
 
   # Type
-  j { type }
+  J { type }
 
   # Project
-  k { project }
+  K { project }
 
   # Estimate
-  l { estimate }
+  L { estimate }
 
   # Due Date
-  m { due_date }
+  M { due_date }
 end
 ```
 

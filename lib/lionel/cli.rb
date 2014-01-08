@@ -41,9 +41,13 @@ module Lionel
     method_option "print", :aliases => "-p", :type => :boolean, :default => false, :desc => "Print results instead of saving them to Google Docs."
     method_option "trello-board-id", :aliases => "-t", :type => :string, :default => nil, :desc => "Specify the source Trello board id."
     method_option "google-doc-id", :aliases => "-g", :type => :string, :default => nil, :desc => "Specify the target Google doc id."
-    method_option "save", :aliases => "-c", :type => :string, :default => true, :desc => "Save the command line ids as the default configuration."
+    method_option "save", :aliases => "-s", :type => :string, :default => true, :desc => "Save the command line ids as the default configuration."
     method_option "filter", :aliases => "-f", :type => :string, :default => 'open-lists', :desc => "Possible values: open-cards, open-lists."
+    method_option "configuration", :aliases => "-c", :type => :string, :default => nil, :desc => "Path to Lionelfile configuration"
     def export
+      lionel_file = options['configuration'] || './Lionelfile'
+      eval(File.read(lionel_file)) if File.exists?(lionel_file)
+
       export = Lionel::Export.new(options)
 
       if options['google-doc-id']
@@ -69,10 +73,10 @@ module Lionel
         if @google_attempts < 2
           retry
         else
-          invoke :authorize, ['google']
+          invoke :authorize, ['google'], {}
         end
       rescue Trello::Error, Trello::InvalidAccessToken
-        invoke :authorize, ['trello']
+        invoke :authorize, ['trello'], {}
       end
 
       welcome = "Trello? Is it me you're looking for?"

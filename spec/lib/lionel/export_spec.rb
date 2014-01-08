@@ -1,7 +1,6 @@
 require 'spec_helper'
 
 describe Lionel::Export do
-
   describe "configuration" do
     before(:each) do
       subject.trello_board_id = "TRELLO_BOARD_ID"

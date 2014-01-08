@@ -25,7 +25,7 @@ module Lionel
       return false unless refresh_token
 
       current_token = OAuth2::AccessToken.from_hash(client,
-          {:refresh_token => refresh_token, :expires_at => 36000})
+          {:refresh_token => refresh_token, :expires_at => 604800}) # 1 week
       @access_token = current_token.refresh! # returns new access_token
     end
 

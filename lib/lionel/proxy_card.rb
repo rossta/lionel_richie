@@ -54,7 +54,7 @@ module Lionel
     end
 
     def estimate
-      match = card.name.match(/\[(?<estimate>\w)\]/)
+      match = card.name.match(/\[(?<estimate>\w+)\]/)
       return "" unless match
       match[:estimate]
     end

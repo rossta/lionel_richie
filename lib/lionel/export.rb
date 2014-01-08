@@ -6,6 +6,14 @@ module Lionel
 
     config_accessor :google_doc_id, :trello_board_id
 
+    def self.builder=(builder)
+      @builder = builder
+    end
+
+    def self.builder
+      @builder || ExportBuilder.default
+    end
+
     def initialize(options = {})
       @options = options
     end
@@ -48,24 +56,28 @@ module Lionel
       download
 
       if options['print']
-        rows.each { |row| Lionel.logger.info row.inspect }
+        Lionel.logger.info "DRY RUN..."
+        Lionel.logger.info "Results were not uploaded to Google Drive"
       else
+        Lionel.logger.info "Uploading..."
         upload
+        Lionel.logger.info "Done!"
       end
     end
 
     def download
+      raise_missing_builder_error unless builder
+
       Lionel.logger.info "Exporting trello board '#{board.name}' (#{trello_board_id}) to " + "google doc '#{spreadsheet.title}' (#{google_doc_id})"
 
       card_map.each do |row, card|
         begin
-          Timeout.timeout(5) {
-            Lionel.logger.info "row[#{row}] = #{card.name}"
-
-            sync_columns(card).each do |col, value|
+          Timeout.timeout(5) do
+            row_data = card_columns(card).map do |col, value|
               worksheet[col,row] = value
-            end
-          }
+            end.join(" | ")
+            Lionel.logger.info "row[#{row}]: " + row_data
+          end
         rescue Timeout::Error, Trello::Error => e
           Lionel.logger.warn e.inspect
           Lionel.logger.warn card.inspect
@@ -85,46 +97,20 @@ module Lionel
       worksheet.rows
     end
 
-    def sync_columns(card)
-      {}.tap do |columns|
-        columns["B"] = card.id
+    def builder
+      self.class.builder
+    end
 
-        # Card link
-        columns["C"] = card.link(card.name.gsub(/^\[.*\]\s*/, ""))
-
-        # Ready date
-        ready_action = card.first_action do |a|
-          (a.create? && a.board_id == trello_board_id) || a.moved_to?("Ready")
+    def card_columns(card)
+      card_column_rows[card.id] ||= {}.tap do |columns|
+        builder.columns.each do |col_name, block|
+          columns[col_name] = card.instance_exec(self, &block)
         end
-        columns["D"] = card.format_date(ready_action.date) if ready_action
-
-        # In Progress date
-        columns["E"] = card.date_moved_to("In Progress")
-
-        # Code Review date
-        columns["F"] = card.date_moved_to("Code Review")
-
-        # Review date
-        columns["G"] = card.date_moved_to("Review")
-
-        # Deploy date
-        columns["H"] = card.date_moved_to("Deploy")
-
-        # Completed date
-        columns["I"] = card.date_moved_to("Completed")
-
-        # Type
-        columns["J"] = card.type
-
-        # Project
-        columns["K"] = card.project
-
-        # Estimate
-        columns["L"] = card.estimate
-
-        # Due Date
-        columns["M"] = card.due_date
       end
+    end
+
+    def card_column_rows
+      @card_column_rows ||= {}
     end
 
     def authenticate
@@ -166,6 +152,19 @@ module Lionel
       end
     end
 
+    def raise_missing_builder_error
+      message = <<-ERROR.gsub(/^ {6}/, '')
+        The export is not configured. Example:
+
+        Lionel.export do
+          A { id }
+          B { name }
+          C { url }
+        end
+      ERROR
+      raise MissingBuilderError.new(message)
+    end
+
     class CardMap
       include Enumerable
 
@@ -186,10 +185,9 @@ module Lionel
       private
 
       def populate_rows
-        Lionel.logger.info "Using CardMap!!!!"
         {}.tap do |card_rows|
 
-          start_row = 2
+          start_row = 2 # Currently assumes a header column
           rows = worksheet.size
 
           # Find existing rows for current cards
@@ -210,5 +208,6 @@ module Lionel
         end
       end
     end
+
   end
 end
