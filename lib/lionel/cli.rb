@@ -69,10 +69,10 @@ module Lionel
         if @google_attempts < 2
           retry
         else
-          invoke :authorize, ['google']
+          invoke :authorize, ['google'], {}
         end
       rescue Trello::Error, Trello::InvalidAccessToken
-        invoke :authorize, ['trello']
+        invoke :authorize, ['trello'], {}
       end
 
       welcome = "Trello? Is it me you're looking for?"
