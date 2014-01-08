@@ -5,6 +5,14 @@ module Lionel
       new.configure(&block)
     end
 
+    def self.default
+      build do
+        A { id }
+        B { name }
+        C { url }
+      end
+    end
+
     def configure(&block)
       instance_eval(&block)
       self

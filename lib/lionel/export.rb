@@ -11,7 +11,7 @@ module Lionel
     end
 
     def self.builder
-      @builder
+      @builder || ExportBuilder.default
     end
 
     def initialize(options = {})
