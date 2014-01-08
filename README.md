@@ -1,5 +1,7 @@
 # LionelRichie
 
+[![Code Climate](https://codeclimate.com/github/rossta/lionel_richie.png)](https://codeclimate.com/github/rossta/lionel_richie)
+
 LionelRichie is a script for exporting Trello data to Google Docs.
 
 This gem is in its very early stages so its probably not useful to you yet.
