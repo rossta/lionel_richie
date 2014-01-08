@@ -56,9 +56,12 @@ module Lionel
       download
 
       if options['print']
-        rows.each { |row| Lionel.logger.info row.inspect }
+        Lionel.logger.info "DRY RUN..."
+        Lionel.logger.info "Results were not uploaded to Google Drive"
       else
+        Lionel.logger.info "Uploading..."
         upload
+        Lionel.logger.info "Done!"
       end
     end
 
@@ -69,13 +72,12 @@ module Lionel
 
       card_map.each do |row, card|
         begin
-          Timeout.timeout(5) {
-            Lionel.logger.info "row[#{row}] = #{card.name}"
-
-            sync_columns(card).each do |col, value|
+          Timeout.timeout(5) do
+            row_data = card_columns(card).map do |col, value|
               worksheet[col,row] = value
-            end
-          }
+            end.join(" | ")
+            Lionel.logger.info "row[#{row}]: " + row_data
+          end
         rescue Timeout::Error, Trello::Error => e
           Lionel.logger.warn e.inspect
           Lionel.logger.warn card.inspect
@@ -99,12 +101,16 @@ module Lionel
       self.class.builder
     end
 
-    def sync_columns(card)
-      {}.tap do |columns|
+    def card_columns(card)
+      card_column_rows[card.id] ||= {}.tap do |columns|
         builder.columns.each do |col_name, block|
           columns[col_name] = card.instance_exec(self, &block)
         end
       end
+    end
+
+    def card_column_rows
+      @card_column_rows ||= {}
     end
 
     def authenticate
