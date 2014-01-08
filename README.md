@@ -49,10 +49,9 @@ When running this command for the first time, you'll be asked to enter your trel
 
 Run `lionel` to see a list of the available commands and options.
 
-## Crafting the Export (Doesn't exist yet)
+## Crafting the Export
 
 ```ruby
-
 LionelRichie.export do
   # Card Id
   B { id }
