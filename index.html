@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link href='https://fonts.googleapis.com/css?family=Architects+Daughter' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="stylesheets/pygment_trac.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="stylesheets/print.css" media="print" />
+
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+    <title>LionelRichie by rossta</title>
+  </head>
+
+  <body>
+    <header>
+      <div class="inner">
+        <h1>LionelRichie</h1>
+        <h2>Trello? Export your Trello data to Google Docs</h2>
+        <a href="https://github.com/rossta/lionel_richie" class="button"><small>View project on</small>GitHub</a>
+      </div>
+    </header>
+
+    <div id="content-wrapper">
+      <div class="inner clearfix">
+        <section id="main-content">
+          <h1>
+<a name="lionelrichie" class="anchor" href="#lionelrichie"><span class="octicon octicon-link"></span></a>LionelRichie</h1>
+
+<p><a href="https://codeclimate.com/github/rossta/lionel_richie"><img src="https://codeclimate.com/github/rossta/lionel_richie.png" alt="Code Climate"></a></p>
+
+<p>LionelRichie is a script for exporting Trello data to Google Docs.</p>
+
+<p><img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRmSbZ56riC_raK-rR4HiV4YKjvXTTUQy4_GCpPAYqdSkCz3RhO" alt="Trello? Is it me you're looking for?"></p>
+
+<h2>
+<a name="installation" class="anchor" href="#installation"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<p>Add this line to your application's Gemfile:</p>
+
+<pre><code>gem 'lionel_richie'
+</code></pre>
+
+<p>And then execute:</p>
+
+<pre><code>$ bundle
+</code></pre>
+
+<p>Or install it yourself as:</p>
+
+<pre><code>$ gem install lionel_richie
+</code></pre>
+
+<h2>
+<a name="setup" class="anchor" href="#setup"><span class="octicon octicon-link"></span></a>Setup</h2>
+
+<p>Assuming you have a Google account, a Trello account, and a board you want to export to google docs, you're ready to start using lionel_richie.</p>
+
+<p>You'll first need to authorize your CLI to use the Trello and Google APIs.</p>
+
+<p>To authorize, sign in to Trello and run the following command:</p>
+
+<pre><code>$ lionel authorize trello
+</code></pre>
+
+<p>This command will direct you to a URL which has your trello key. Enter this into the CLI. You'll then be directed to a URL where you'll authorize the application to get your trello token. If you entered the key and token correctly, you should now be authorized to use Trello.</p>
+
+<p>To authorize Google, run the following command:</p>
+
+<pre><code>$ lionel authorize google
+</code></pre>
+
+<p>This command will direct you to the <a href="https://code.google.com/apis/console">Google API console</a>. You'll need to create a Google client app for LionelRichie. Feel free to call it whatever you want. Once you have registered a client app, click the tab "API Access", then "Create an OAuth 2.0 Client ID" to open up a modal. Set a client name, like "CLI" for command line interface and continue. Next the modal presents "Client ID Settings"; choose "Installed Application" for "Application type", and "Other" for "Installed application type". Now press "Create client ID". From your newly created client settings, grab the client id and client secret. Enter them in the CLI.</p>
+
+<p>You'll then be directed to authorize the application and retrieve your google token.</p>
+
+<p>You should now be ready to run the export:</p>
+
+<pre><code>$ lionel export                         # uploads to your google doc
+$ lionel export --print                 # prints the output without uploading
+$ lionel export -c ./path/to/Lionelfile # uploads export configured by given Lionelfile
+</code></pre>
+
+<p>When running this command for the first time, you'll be asked to enter your trello board id and google doc id, which you can grab from the respective URLs of those resources.</p>
+
+<p>Run <code>lionel</code> to see a list of the available commands and options.</p>
+
+<h2>
+<a name="crafting-the-export" class="anchor" href="#crafting-the-export"><span class="octicon octicon-link"></span></a>Crafting the Export</h2>
+
+<p>The export can be configured using the export DSL. Export methods take the form of a Google doc column, e.g. 'A', 'BC', etc. To set the value on a column, pass a value or a block. The block is rendered in the context of each <code>Card</code> object populated with data from Trello.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># Lionelfile</span>
+<span class="no">LionelRichie</span><span class="o">.</span><span class="n">export</span> <span class="k">do</span>
+  <span class="c1"># Card Id</span>
+  <span class="n">B</span> <span class="p">{</span> <span class="nb">id</span> <span class="p">}</span>
+
+  <span class="c1"># Card Link</span>
+  <span class="n">C</span> <span class="p">{</span> <span class="n">link</span> <span class="p">}</span>
+
+  <span class="c1"># Ready date</span>
+  <span class="n">D</span> <span class="k">do</span> <span class="o">|</span><span class="n">export</span><span class="o">|</span>
+    <span class="n">ready_action</span> <span class="o">=</span> <span class="n">first_action</span> <span class="k">do</span> <span class="o">|</span><span class="n">a</span><span class="o">|</span>
+      <span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">create?</span> <span class="o">&amp;&amp;</span> <span class="n">a</span><span class="o">.</span><span class="n">board_id</span> <span class="o">==</span> <span class="n">export</span><span class="o">.</span><span class="n">trello_board_id</span><span class="p">)</span> <span class="o">||</span> <span class="n">a</span><span class="o">.</span><span class="n">moved_to?</span><span class="p">(</span><span class="s2">"Ready"</span><span class="p">)</span>
+    <span class="k">end</span>
+    <span class="n">format_date</span><span class="p">(</span><span class="n">ready_action</span><span class="o">.</span><span class="n">date</span><span class="p">)</span> <span class="k">if</span> <span class="n">ready_action</span>
+  <span class="k">end</span>
+
+  <span class="c1"># In Progress date</span>
+  <span class="n">E</span> <span class="p">{</span> <span class="n">date_moved_to</span><span class="p">(</span><span class="s2">"In Progress"</span><span class="p">)</span> <span class="p">}</span>
+
+  <span class="c1"># Code Review date</span>
+  <span class="n">F</span> <span class="p">{</span> <span class="n">date_moved_to</span><span class="p">(</span><span class="s2">"Code Review"</span><span class="p">)</span> <span class="p">}</span>
+
+  <span class="c1"># Review date</span>
+  <span class="n">G</span> <span class="p">{</span> <span class="n">date_moved_to</span><span class="p">(</span><span class="s2">"Review"</span><span class="p">)</span> <span class="p">}</span>
+
+  <span class="c1"># Deploy date</span>
+  <span class="n">H</span> <span class="p">{</span> <span class="n">date_moved_to</span><span class="p">(</span><span class="s2">"Deploy"</span><span class="p">)</span> <span class="p">}</span>
+
+  <span class="c1"># Completed date</span>
+  <span class="n">I</span> <span class="p">{</span> <span class="n">date_moved_to</span><span class="p">(</span><span class="s2">"Completed"</span><span class="p">)</span> <span class="p">}</span>
+
+  <span class="c1"># Type</span>
+  <span class="n">J</span> <span class="p">{</span> <span class="n">type</span> <span class="p">}</span>
+
+  <span class="c1"># Project</span>
+  <span class="n">K</span> <span class="p">{</span> <span class="n">project</span> <span class="p">}</span>
+
+  <span class="c1"># Estimate</span>
+  <span class="n">L</span> <span class="p">{</span> <span class="n">estimate</span> <span class="p">}</span>
+
+  <span class="c1"># Due Date</span>
+  <span class="n">M</span> <span class="p">{</span> <span class="n">due_date</span> <span class="p">}</span>
+<span class="k">end</span>
+</pre></div>
+
+<h2>
+<a name="contributing" class="anchor" href="#contributing"><span class="octicon octicon-link"></span></a>Contributing</h2>
+
+<ol>
+<li>Fork it</li>
+<li>Create your feature branch (<code>git checkout -b my-new-feature</code>)</li>
+<li>Commit your changes (<code>git commit -am 'Add some feature'</code>)</li>
+<li>Push to the branch (<code>git push origin my-new-feature</code>)</li>
+<li>Create new Pull Request</li>
+</ol>
+        </section>
+
+        <aside id="sidebar">
+          <a href="https://github.com/rossta/lionel_richie/zipball/master" class="button">
+            <small>Download</small>
+            .zip file
+          </a>
+          <a href="https://github.com/rossta/lionel_richie/tarball/master" class="button">
+            <small>Download</small>
+            .tar.gz file
+          </a>
+
+          <p class="repo-owner"><a href="https://github.com/rossta/lionel_richie"></a> is maintained by <a href="https://github.com/rossta">rossta</a>.</p>
+
+          <p>This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the Architect theme by <a href="https://twitter.com/jasonlong">Jason Long</a>.</p>
+        </aside>
+      </div>
+    </div>
+
+  
+  </body>
+</html>
