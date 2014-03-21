@@ -4,7 +4,7 @@
 
 LionelRichie is a script for exporting Trello data to Google Docs.
 
-![Trello? Is it me you're looking for?](https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRmSbZ56riC_raK-rR4HiV4YKjvXTTUQy4_GCpPAYqdSkCz3RhO)
+![Trello? Is it me you're looking for?](http://cdn.memegenerator.net/instances/500x/19904714.jpg)
 
 ## Installation
 
