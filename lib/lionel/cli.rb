@@ -77,6 +77,8 @@ module Lionel
         end
       rescue Trello::Error, Trello::InvalidAccessToken
         invoke :authorize, ['trello'], {}
+      ensure
+        export.authenticate
       end
 
       welcome = "Trello? Is it me you're looking for?"
