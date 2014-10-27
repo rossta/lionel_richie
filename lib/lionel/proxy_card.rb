@@ -63,5 +63,11 @@ module Lionel
       format_date(due) if due
     end
 
+    def checklist_count(name)
+      checklist = card.checklists.find { |chl| chl.name == name }
+      return 0 unless checklist
+      checklist.check_items.count
+    end
+
   end
 end
