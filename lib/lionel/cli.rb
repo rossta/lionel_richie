@@ -78,6 +78,7 @@ module Lionel
       rescue Trello::Error, Trello::InvalidAccessToken
         invoke :authorize, ['trello'], {}
       ensure
+        export = Lionel::Export.new(options)
         export.authenticate
       end
 
