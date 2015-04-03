@@ -6,5 +6,5 @@ gemspec
 
 group :development do
   gem 'pry'
-  gem 'pry-debugger'
+  gem 'pry-byebug'
 end
