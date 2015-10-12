@@ -1,6 +1,6 @@
 require 'yajl'
 require 'trello'
-require 'google_drive'
+require 'google_drive_v0'
 require 'launchy'
 require 'thor'
 require 'logger'

@@ -66,7 +66,7 @@ module Lionel
 
       begin
         export.authenticate
-      rescue GoogleDrive::Error, GoogleDrive::AuthenticationError
+      rescue GoogleDriveV0::Error, GoogleDriveV0::AuthenticationError
         @google_attempts ||= 0
         @google_attempts += 1
         Lionel::GoogleAuthentication.new.refresh
