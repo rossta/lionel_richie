@@ -22,7 +22,7 @@ Gem::Specification.new do |spec|
   spec.executables = %w(lionel)
 
   spec.add_dependency "ruby-trello"
-  spec.add_dependency "google_drive", "~> 0.3.0"
+  spec.add_dependency "google_drive"
   spec.add_dependency "yajl-ruby"
   spec.add_dependency "thor"
   spec.add_dependency "faraday", "~> 0.8"
