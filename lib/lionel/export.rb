@@ -131,7 +131,7 @@ module Lionel
     end
 
     def google_session
-      @google_session ||= GoogleDriveV0.login_with_oauth(configuration.google_token)
+      @google_session ||= GoogleDrive.login_with_oauth(configuration.google_token)
     end
 
     def trello_session
